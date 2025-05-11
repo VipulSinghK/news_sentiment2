@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Aggregator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes modalSlideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes modalFadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        @keyframes modalSlideDown {
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(50px); opacity: 0; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .article-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .article-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #2563eb;
+            border-radius: 50%;
+            width: 2rem;
+            height: 2rem;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #e0e7ff 0%, #e5e5e5 100%);
+        }
+
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            animation: modalFadeIn 0.3s ease forwards;
+        }
+
+        .modal-overlay.closing {
+            animation: modalFadeOut 0.3s ease forwards;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 90%;
+            width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            animation: modalSlideUp 0.3s ease forwards;
+        }
+
+        .modal-content.closing {
+            animation: modalSlideDown 0.3s ease forwards;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: #1e40af;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <!-- Header -->
+    <header class="sticky-header py-4 shadow-md">
+        <div class="container mx-auto px-6">
+            <h1 class="text-4xl font-bold text-center text-blue-600 animate-pulse">News Aggregator</h1>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-6 py-8">
+        <!-- Article Input -->
+        <div class="mb-8 p-6 bg-white rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">Add Articles from News Source</h2>
+            <div class="flex flex-col md:flex-row gap-4">
+                <input id="articleUrl" type="text" placeholder="Enter news homepage URL (e.g., https://www.bbc.com/news)" 
+                       class="border border-gray-300 p-3 flex-grow rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <select id="articleCategory" class="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                    <option value="">Select Category (Optional)</option>
+                    <option value="Politics">Politics</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Science">Science</option>
+                    <option value="Lifestyle">Lifestyle</option>
+                    <option value="Business">Business</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Culture">Culture</option>
+                    <option value="Education">Education</option>
+                    <option value="General">General</option>
+                </select>
+                <button id="fetchBtn" 
+                        class="relative bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition-all duration-300 flex items-center gap-2">
+                    <span>Fetch Articles</span>
+                    <div id="fetchSpinner" class="spinner"></div>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="mb-8 p-6 bg-white rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">Filter Articles</h2>
+            <div class="flex flex-col md:flex-row gap-4">
+                <select id="categoryFilter" class="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                    <option value="">All Categories</option>
+                    <option value="Politics">Politics</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Science">Science</option>
+                    <option value="Lifestyle">Lifestyle</option>
+                    <option value="Business">Business</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Culture">Culture</option>
+                    <option value="Education">Education</option>
+                    <option value="General">General</option>
+                </select>
+                <select id="sentimentFilter" class="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                    <option value="">All Sentiments</option>
+                    <option value="POSITIVE">Positive</option>
+                    <option value="NEGATIVE">Negative</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Articles Display -->
+        <div id="articles" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- Modal -->
+    <div id="articleModal" class="modal-overlay hidden" role="dialog" aria-labelledby="modalTitle" aria-modal="true">
+        <div class="modal-content">
+            <button id="modalClose" class="modal-close" aria-label="Close modal">&times;</button>
+            <h2 id="modalTitle" class="text-2xl font-bold text-blue-600 mb-4"></h2>
+            <p id="modalUrl" class="text-sm text-gray-500 mb-2"></p>
+            <p id="modalSummary" class="text-gray-700 mb-4"></p>
+            <p id="modalCategory" class="mb-2"><strong>Category:</strong> <span class="px-2 py-1 rounded bg-gray-100 text-gray-700"></span></p>
+            <p id="modalBias" class="mb-2"><strong>Bias:</strong> <span class="px-2 py-1 rounded"></span></p>
+            <p id="modalSentiment" class="mb-2"><strong>Sentiment:</strong> <span class="px-2 py-1 rounded"></span></p>
+            <p id="modalEmotion" class="mb-2"><strong>Emotion:</strong> <span class="px-2 py-1 rounded bg-yellow-100 text-yellow-700"></span></p>
+            <p id="modalDate" class="text-sm text-gray-500"></p>
+        </div>
+    </div>
+
+    <script>
+        let allArticles = [];
+        const modal = document.getElementById("articleModal");
+        const modalCloseBtn = document.getElementById("modalClose");
+
+        async function fetchArticles() {
+            const sentimentFilter = document.getElementById("sentimentFilter").value;
+            const categoryFilter = document.getElementById("categoryFilter").value;
+            let url = "/api/get_articles";
+            const params = new URLSearchParams();
+            if (sentimentFilter) params.append("sentiment", sentimentFilter);
+            if (categoryFilter) params.append("category", categoryFilter);
+            if (params.toString()) url += `?${params.toString()}`;
+            
+            const response = await fetch(url);
+            allArticles = await response.json();
+            console.log("Fetched articles:", allArticles.length);
+            const uniqueArticles = [];
+            const seenUrls = new Set();
+            for (const article of allArticles) {
+                if (!seenUrls.has(article.url)) {
+                    seenUrls.add(article.url);
+                    uniqueArticles.push(article);
+                }
+            }
+            allArticles = uniqueArticles;
+            console.log("Unique articles after deduplication:", allArticles.length);
+            displayArticles();
+        }
+
+        function displayArticles() {
+            const articlesDiv = document.getElementById("articles");
+            articlesDiv.innerHTML = "";
+            if (allArticles.length === 0) {
+                articlesDiv.innerHTML = "<p class='text-center text-gray-500 col-span-full fade-in'>No articles found.</p>";
+                return;
+            }
+            allArticles.forEach((article, index) => {
+                const articleCard = document.createElement("div");
+                articleCard.className = "bg-white p-6 rounded-xl shadow-md article-card fade-in";
+                articleCard.style.animationDelay = `${index * 0.1}s`;
+                articleCard.innerHTML = `
+                    <h3 class="text-lg font-bold text-blue-600 mb-2">${article.title}</h3>
+                    <p class="text-sm text-gray-500 mb-2"><strong>URL:</strong> <a href="${article.url}" target="_blank" class="text-blue-500 hover:underline">${article.url}</a></p>
+                    <p class="text-gray-700 mb-3"><strong>Summary:</strong> ${article.summary}</p>
+                    <p class="mb-2"><strong>Category:</strong> <span class="px-2 py-1 rounded bg-gray-100 text-gray-700">${article.category}</span></p>
+                    <p class="mb-2"><strong>Bias:</strong> <span class="px-2 py-1 rounded ${article.bias === 'Left' ? 'bg-red-100 text-red-700' : article.bias === 'Right' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}">${article.bias}</span></p>
+                    <p class="mb-2"><strong>Sentiment:</strong> <span class="px-2 py-1 rounded ${article.sentiment === 'POSITIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${article.sentiment}</span></p>
+                    <p class="mb-2"><strong>Emotion:</strong> <span class="px-2 py-1 rounded bg-yellow-100 text-yellow-700">${article.emotion}</span></p>
+                    <p class="text-sm text-gray-500"><strong>Date:</strong> ${article.date}</p>
+                `;
+                articleCard.addEventListener("click", () => openModal(article));
+                articlesDiv.appendChild(articleCard);
+            });
+        }
+
+        function openModal(article) {
+            document.getElementById("modalTitle").textContent = article.title;
+            const modalUrl = document.getElementById("modalUrl");
+            modalUrl.innerHTML = `<strong>URL:</strong> <a href="${article.url}" target="_blank" class="text-blue-500 hover:underline">${article.url}</a>`;
+            document.getElementById("modalSummary").textContent = article.summary;
+            document.getElementById("modalCategory").querySelector("span").textContent = article.category;
+            const modalBiasSpan = document.getElementById("modalBias").querySelector("span");
+            modalBiasSpan.textContent = article.bias;
+            modalBiasSpan.className = `px-2 py-1 rounded ${article.bias === 'Left' ? 'bg-red-100 text-red-700' : article.bias === 'Right' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`;
+            const modalSentimentSpan = document.getElementById("modalSentiment").querySelector("span");
+            modalSentimentSpan.textContent = article.sentiment;
+            modalSentimentSpan.className = `px-2 py-1 rounded ${article.sentiment === 'POSITIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+            document.getElementById("modalEmotion").querySelector("span").textContent = article.emotion;
+            document.getElementById("modalDate").textContent = `Date: ${article.date}`;
+
+            modal.classList.remove("hidden");
+            document.body.style.overflow = "hidden";
+            modal.focus();
+        }
+
+        function closeModal() {
+            modal.classList.add("closing");
+            modal.addEventListener("animationend", () => {
+                modal.classList.add("hidden");
+                modal.classList.remove("closing");
+                document.body.style.overflow = "auto";
+            }, { once: true });
+        }
+
+        modalCloseBtn.addEventListener("click", closeModal);
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) closeModal();
+        });
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+                closeModal();
+            }
+        });
+
+        document.getElementById("fetchBtn").addEventListener("click", async () => {
+            const fetchBtn = document.getElementById("fetchBtn");
+            const fetchSpinner = document.getElementById("fetchSpinner");
+            fetchBtn.disabled = true;
+            fetchSpinner.style.display = "block";
+
+            const url = document.getElementById("articleUrl").value;
+            const category = document.getElementById("articleCategory").value;
+            try {
+                const response = await fetch("/api/fetch_news", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url, category })
+                });
+                const result = await response.json();
+                if (result.status === "success") {
+                    console.log("Fetched articles from source:", result.articles.length);
+                    await fetchArticles();
+                } else {
+                    alert("Error: " + result.message);
+                }
+            } catch (error) {
+                alert("Error: " + error.message);
+            } finally {
+                fetchBtn.disabled = false;
+                fetchSpinner.style.display = "none";
+            }
+        });
+
+        document.getElementById("categoryFilter").addEventListener("change", fetchArticles);
+        document.getElementById("sentimentFilter").addEventListener("change", fetchArticles);
+
+        // Initial load
+        fetchArticles();
+    </script>
+</body>
+</html>
