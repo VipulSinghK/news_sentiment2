@@ -285,7 +285,7 @@ if __name__ == "__main__":
     init_db()
     if os.getenv("FLASK_ENV") == "production":
         logger.info("Starting News Aggregator in production mode")
-        port = int(os.getenv("PORT", 8080))  # Default to 8080 for Render
+        port = int(os.getenv("PORT", 10000))  # Default to 10000 for Render
         app.run(host="0.0.0.0", port=port)
     else:
         logger.info("Starting News Aggregator in development mode")
